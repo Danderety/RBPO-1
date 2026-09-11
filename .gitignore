@@ -1,0 +1,37 @@
+data/
+data-backup-*/
+.sites-runtime/
+node_modules/
+*.log
+
+# Сборка и результаты локальных проверок
+build/
+dist/
+out/
+coverage/
+.nyc_output/
+.cache/
+*.tsbuildinfo
+
+# Настройки редакторов
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Менеджеры пакетов (в проекте нет внешних npm-зависимостей)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Локальная конфигурация и временные файлы
+.env
+.env.*
+!.env.example
+tmp/
+temp/
+*.tmp
+.DS_Store
+Thumbs.db
+Desktop.ini
