@@ -1,0 +1,78 @@
+<meta charset="utf-8"><style>body{font:17px system-ui;background:#eef2f5;color:#152536;padding:32px;max-width:1250px;margin:auto}h1{font-size:26px}article{background:white;padding:20px;margin:16px 0;border:1px solid #cbd5df;border-radius:12px}pre{font:15px monospace;white-space:pre-wrap;overflow-wrap:anywhere}small{color:#526378}.tag{color:#08724b;font-weight:bold}</style><h1>Faultline · access-04-after</h1><p>Скриншот сохранённого HTTP-журнала реальной проверки. Не DevTools.</p><article><small>2026-09-11T17:57:05.810808+03:00</small><h2>GET http://127.0.0.1:3000/api/admin/orders</h2><p>Сессия: anonymous · Cookie отправлен: False</p><p class="tag">HTTP 200</p><pre>[
+  {
+    &quot;id&quot;: 3,
+    &quot;user_id&quot;: 1,
+    &quot;total&quot;: 24900,
+    &quot;address&quot;: &quot;Учебная улица, 1&quot;,
+    &quot;status&quot;: &quot;new&quot;,
+    &quot;items&quot;: &quot;[{\&quot;id\&quot;:5,\&quot;name\&quot;:\&quot;Монитор 27 дюймов\&quot;,\&quot;price\&quot;:24900}]&quot;,
+    &quot;email&quot;: &quot;alice@lab.test&quot;
+  },
+  {
+    &quot;id&quot;: 2,
+    &quot;user_id&quot;: 2,
+    &quot;total&quot;: 12400,
+    &quot;address&quot;: &quot;Демо-переулок, 2&quot;,
+    &quot;status&quot;: &quot;new&quot;,
+    &quot;items&quot;: &quot;[]&quot;,
+    &quot;email&quot;: &quot;bob@lab.test&quot;
+  },
+  {
+    &quot;id&quot;: 1,
+    &quot;user_id&quot;: 1,
+    &quot;total&quot;: 8900,
+    &quot;address&quot;: &quot;Учебная улица, 1&quot;,
+    &quot;status&quot;: &quot;shipped&quot;,
+    &quot;items&quot;: &quot;[]&quot;,
+    &quot;email&quot;: &quot;alice@lab.test&quot;
+  }
+]</pre></article><article><small>2026-09-11T17:57:05.812864+03:00</small><h2>GET http://127.0.0.1:3000/api/products</h2><p>Сессия: anonymous · Cookie отправлен: False</p><p class="tag">HTTP 200</p><pre>[
+  {
+    &quot;id&quot;: 1,
+    &quot;name&quot;: &quot;Механическая клавиатура&quot;,
+    &quot;category&quot;: &quot;Рабочее место&quot;,
+    &quot;price&quot;: 1,
+    &quot;glyph&quot;: &quot;⌨&quot;,
+    &quot;stock&quot;: 5
+  },
+  {
+    &quot;id&quot;: 2,
+    &quot;name&quot;: &quot;Студийные наушники&quot;,
+    &quot;category&quot;: &quot;Аудио&quot;,
+    &quot;price&quot;: 12400,
+    &quot;glyph&quot;: &quot;♫&quot;,
+    &quot;stock&quot;: 5
+  },
+  {
+    &quot;id&quot;: 3,
+    &quot;name&quot;: &quot;Настольный микрофон&quot;,
+    &quot;category&quot;: &quot;Аудио&quot;,
+    &quot;price&quot;: 6700,
+    &quot;glyph&quot;: &quot;◉&quot;,
+    &quot;stock&quot;: 5
+  },
+  {
+    &quot;id&quot;: 4,
+    &quot;name&quot;: &quot;USB-C концентратор&quot;,
+    &quot;category&quot;: &quot;Аксессуары&quot;,
+    &quot;price&quot;: 3900,
+    &quot;glyph&quot;: &quot;⊞&quot;,
+    &quot;stock&quot;: 5
+  },
+  {
+    &quot;id&quot;: 5,
+    &quot;name&quot;: &quot;Монитор 27 дюймов&quot;,
+    &quot;category&quot;: &quot;Рабочее место&quot;,
+    &quot;price&quot;: 24900,
+    &quot;glyph&quot;: &quot;▣&quot;,
+    &quot;stock&quot;: 5
+  },
+  {
+    &quot;id&quot;: 6,
+    &quot;name&quot;: &quot;Портативный SSD&quot;,
+    &quot;category&quot;: &quot;Аксессуары&quot;,
+    &quot;price&quot;: 7400,
+    &quot;glyph&quot;: &quot;▤&quot;,
+    &quot;stock&quot;: 5
+  }
+]</pre></article>
