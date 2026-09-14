@@ -261,3 +261,37 @@ node scripts/lab-cli.mjs post /api/orders/delete '{"id":2}' X-HTTP-Method-Overri
 6. Ответ `deleted:1` означает, что заказ удалён без входа.
 
 - **Лечение.** Не включать method override без необходимости; обрабатывать эффективный метод до маршрутизации; одна и та же авторизация для всех вариантов метода. После исправления anonymous получает 401/403, заказ остаётся.
+
+## CLI-03. Неверный Content-Type принимается
+
+```text
+node scripts/lab-cli.mjs raw POST /api/register 'email=plain@lab.test&password=x&role=admin&name=Plain' Content-Type=text/plain
+```
+
+Ищите STATUS 201.
+
+Затем:
+
+```text
+node scripts/lab-cli.mjs login plain@lab.test x
+node scripts/lab-cli.mjs get /api/me
+```
+
+Если роль `admin`, сервер принял неподходящий формат тела.
+
+- **Идея.** Сервер ожидает JSON, но `text/plain` разбирает как форму и создаёт аккаунт.
+
+```text
+node scripts/lab-cli.mjs raw POST /api/register 'email=plain@lab.test&password=x&role=admin&name=Plain' Content-Type=text/plain
+```
+
+Правильное доказательство: STATUS 201. Затем:
+
+```text
+node scripts/lab-cli.mjs login plain@lab.test x
+node scripts/lab-cli.mjs get /api/me
+```
+
+Ответ показывает `role:admin`.
+
+- **Лечение.** Endpoint принимает только явно разрешённый Content-Type; иначе 415 Unsupported Media Type. После parsing всё равно нужна схема полей и запрет клиентской роли.
