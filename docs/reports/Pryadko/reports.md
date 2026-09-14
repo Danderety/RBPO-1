@@ -217,3 +217,47 @@ node scripts/lab-cli.mjs get /api/internal/stats X-Forwarded-For=127.0.0.1
 - **Где:** `/api/internal/stats` в `server.mjs`.
 
 - **Лечение.** Принимать proxy-заголовки только от известного reverse proxy, очищать внешнее значение, а доступ проверять с помощью аутентификации и сетевой политики. После исправления обе команды внешнего клиента дают 403.
+
+## CLI-02. Удаление через Method Override
+
+Обычный запрос:
+
+```text
+node scripts/lab-cli.mjs post /api/orders/delete '{"id":2}'
+```
+
+Ожидается 405.
+
+С заголовком:
+
+```text
+node scripts/lab-cli.mjs post /api/orders/delete '{"id":2}' X-HTTP-Method-Override=DELETE
+```
+
+Если ответ содержит `"deleted":1`, заказ удалён без авторизации.
+
+- **Идея.** Обычный POST запрещён, но специальный заголовок превращает его в удаление, причём проверка владельца отсутствует.
+
+1. Посмотрите заказы:
+
+```text
+node scripts/lab-cli.mjs get /api/admin/orders
+```
+
+2. Запомните существующий `id`, например 2.
+3. Обычный POST:
+
+```text
+node scripts/lab-cli.mjs post /api/orders/delete '{"id":2}'
+```
+
+4. Должен быть STATUS 405.
+5. Добавьте заголовок:
+
+```text
+node scripts/lab-cli.mjs post /api/orders/delete '{"id":2}' X-HTTP-Method-Override=DELETE
+```
+
+6. Ответ `deleted:1` означает, что заказ удалён без входа.
+
+- **Лечение.** Не включать method override без необходимости; обрабатывать эффективный метод до маршрутизации; одна и та же авторизация для всех вариантов метода. После исправления anonymous получает 401/403, заказ остаётся.
