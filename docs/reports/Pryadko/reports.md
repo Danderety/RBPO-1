@@ -295,3 +295,36 @@ node scripts/lab-cli.mjs get /api/me
 Ответ показывает `role:admin`.
 
 - **Лечение.** Endpoint принимает только явно разрешённый Content-Type; иначе 415 Unsupported Media Type. После parsing всё равно нужна схема полей и запрет клиентской роли.
+
+## CLI-04. Два одинаковых поля JSON
+
+```text
+node scripts/lab-cli.mjs raw POST /api/register '{"email":"duplicate@lab.test","password":"x","role":"customer","role":"admin"}' Content-Type=application/json
+```
+
+Затем:
+
+```text
+node scripts/lab-cli.mjs login duplicate@lab.test x
+node scripts/lab-cli.mjs get /api/me
+```
+
+Если роль `admin`, JSON parser выбрал последнее поле.
+
+- **Идея.** В одном JSON два поля `role`. Парсер молча оставляет последнее значение.
+
+```text
+node scripts/lab-cli.mjs raw POST /api/register '{"email":"duplicate@lab.test","password":"x","role":"customer","role":"admin","name":"Duplicate"}' Content-Type=application/json
+```
+
+Затем:
+
+```text
+node scripts/lab-cli.mjs login duplicate@lab.test x
+node scripts/lab-cli.mjs get /api/me
+```
+
+Доказательство: созданный пользователь имеет `role:admin`, хотя раньше в запросе было `role:customer`.
+
+- **Проблема.** Разные прокси, валидаторы и приложение могут по-разному выбирать первое или последнее значение.
+- **Лечение:** отклонять duplicate keys на границе, использовать строгую схему и никогда не принимать role при регистрации.
