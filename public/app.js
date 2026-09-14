@@ -6,7 +6,19 @@ function handle(fn){return async event=>{event?.preventDefault();try{await fn(ev
 async function products(q=''){catalog=await api('/api/products?q='+encodeURIComponent(q));$('#products').replaceChildren();for(const p of catalog){const el=document.createElement('article');el.className='product';el.innerHTML='<div class="symbol" aria-hidden="true"></div><div class="details"><span class="category"></span><h3></h3><div class="buy"><strong></strong><button>В корзину +</button></div></div>';el.querySelector('.symbol').textContent=p.glyph;el.querySelector('.category').textContent=p.category;el.querySelector('h3').textContent=p.name;el.querySelector('strong').textContent=money(p.price);el.querySelector('button').onclick=()=>{cart.push(p);drawCart();status('Товар добавлен');};$('#products').append(el);}if(!catalog.length)$('#products').textContent='Ничего не найдено. Попробуйте другой запрос.';}
 function drawCart(){$('#count').textContent=cart.length;$('#items').replaceChildren();cart.forEach((p,i)=>{const row=document.createElement('div');row.className='cartrow';const text=document.createElement('span');text.textContent=p.name+' · '+money(p.price);const button=document.createElement('button');button.textContent='Убрать';button.onclick=()=>{cart.splice(i,1);drawCart();};row.append(text,button);$('#items').append(row);});if(!cart.length)$('#items').textContent='Корзина пуста';$('#total').textContent=money(cart.reduce((s,p)=>s+p.price,0));}
 async function account(){const me=await api('/api/me');$('#login').hidden=!!me;$('#profile').hidden=!me;$('#welcome').textContent=me?'Привет, '+me.name:'С возвращением';if(me){$('#identity').textContent=me.email+' · '+me.role;const orders=await api('/api/orders');$('#orders').replaceChildren();for(const o of orders){const row=document.createElement('p');row.className='order';row.textContent=`№ ${o.id} · ${money(o.total)} · ${o.address}`;$('#orders').append(row);}}}
-async function reviews(){const rows=await api('/api/reviews');/* LAB: STORED-XSS — intentionally unsafe sink */$('#reviewList').innerHTML=rows.map(r=>`<div class="review">${r.body}</div>`).join('');}
+async function reviews(){
+  const rows = await api('/api/reviews');
+  const list = $('#reviewList');
+
+  list.replaceChildren(
+    ...rows.map(r => {
+      const item = document.createElement('div');
+      item.className = 'review';
+      item.textContent = r.body;
+      return item;
+    })
+  );
+}
 const originalAccount=account;
 account=async()=>{await originalAccount();const me=await api('/api/me');$('#admin').hidden=me?.role!=='admin';if(me?.role==='admin')await admin();};
 async function admin(){const [orders,users,products]=await Promise.all([api('/api/admin/orders'),api('/api/admin/users'),api('/api/products')]);$('#adminStats').textContent=`Заказов: ${orders.length} · Ожидают обработки: ${orders.filter(o=>o.status==='new').length} · Сумма: ${money(orders.reduce((s,o)=>s+o.total,0))}`;$('#adminOrders').replaceChildren();for(const o of orders.filter(o=>$('#orderFilter').value==='all'||o.status===$('#orderFilter').value)){const row=document.createElement('div');row.className='order';const text=document.createElement('span');text.textContent=`№ ${o.id} · ${o.email} · ${money(o.total)} · ${o.address}`;const select=document.createElement('select');select.setAttribute('aria-label','Статус заказа '+o.id);for(const [value,label] of [['new','Новый'],['paid','Оплачен'],['shipped','Отправлен'],['cancelled','Отменён']]){const option=new Option(label,value);select.add(option);}select.value=o.status;select.onchange=handle(async()=>{await api('/api/admin/orders',{id:o.id,status:select.value});await admin();status('Статус обновлён');});row.append(text,select);$('#adminOrders').append(row);}$('#adminProducts').replaceChildren();for(const p of products){const form=document.createElement('form');form.className='order';const name=document.createElement('input');name.value=p.name;name.setAttribute('aria-label','Название товара '+p.id);const price=document.createElement('input');price.type='number';price.value=p.price;price.setAttribute('aria-label','Цена товара '+p.id);const button=document.createElement('button');button.textContent='Сохранить';form.append(name,price,button);form.onsubmit=handle(async()=>{await api('/api/admin/products',{id:p.id,name:name.value,price:Number(price.value)});await productsRefresh();status('Товар обновлён');});$('#adminProducts').append(form);}$('#adminUsers').replaceChildren();for(const u of users){const p=document.createElement('p');p.textContent=`${u.id} · ${u.name} · ${u.email} · ${u.role}`;$('#adminUsers').append(p);}}
@@ -19,9 +31,12 @@ $('#logout').onclick=handle(async()=>{await api('/api/logout');await account();}
 $('#checkout').onsubmit=handle(async()=>{if(!cart.length)throw Error('Добавьте товар в корзину');const order=await api('/api/checkout',{total:cart.reduce((s,p)=>s+p.price,0),address:$('#address').value,items:cart.map(p=>({id:p.id,name:p.name,price:p.price}))});cart=[];drawCart();await account();status('Создан учебный заказ № '+order.id);});
 $('#review').onsubmit=handle(async()=>{await api('/api/reviews',{body:$('#reviewText').value,product_id:1});$('#reviewText').value='';await reviews();status('Отзыв опубликован');});
 $('#cartLink').onclick=()=>$('#cart').scrollIntoView({behavior:'smooth'});
-function note(){/* LAB: DOM-XSS */if(location.hash.startsWith('#note=')){let target=$('#note');if(!target){target=document.createElement('div');target.id='note';target.hidden=true;document.body.append(target)}target.innerHTML=decodeURIComponent(location.hash.slice(6));}}
+function note(){/* LAB: DOM-XSS */if(location.hash.startsWith('#note=')){let target=$('#note');if(!target){target=document.createElement('div');target.id='note';target.hidden=true;document.body.append(target)}target.textContent=decodeURIComponent(location.hash.slice(6));}}
 addEventListener('hashchange',()=>{try{note();}catch(e){status(e.message);}});
 // LAB: message origin is not checked before changing a sensitive UI field.
-addEventListener('message',event=>{if(event.data?.type==='set-address')$('#address').value=String(event.data.value || '');});
+addEventListener('message',event=>{
+  if(event.origin!==location.origin) return;
+  if(event.data?.type==='set-address') $('#address').value=String(event.data.value || '');
+});
 Promise.all([products(),account(),reviews()]).then(note).catch(e=>status(e.message));
 

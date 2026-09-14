@@ -32,9 +32,12 @@ const PORT = Number(process.env.PORT || 3000);
 const INTERNAL_PORT = Number(process.env.INTERNAL_PORT || 3001);
 const origin = `http://127.0.0.1:${PORT}`;
 function send(res, status, value, type='application/json; charset=utf-8') {
-  // LAB: technology fingerprint and missing security/cache headers.
-  res.setHeader('X-Powered-By','Faultline Node Training Server');
-  res.writeHead(status, {'Content-Type':type});
+  res.setHeader('X-Powered-By', 'Faultline Node Training Server');
+  res.setHeader(
+    'Content-Security-Policy',
+    "default-src 'self'; script-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'"
+  );
+  res.writeHead(status, {'Content-Type': type});
   res.end(typeof value === 'string' ? value : JSON.stringify(value));
 }
 async function body(req) {
@@ -125,10 +128,11 @@ const server = http.createServer(async(req,res)=>{
       if(!coupon) return send(res,404,{error:'Купон не найден'});
       return send(res,200,{total:Number(b.subtotal)-coupon.discount,discount:coupon.discount});
     }
-    if(p==='/api/address') {
+    if(p==='/api/address' && req.method==='POST') {
       const me=user(req); if(!me) return send(res,401,{error:'Войдите в аккаунт'});
-      // LAB: CSRF — state mutation by GET without token; same-origin demonstration.
-      db.prepare('UPDATE orders SET address=? WHERE user_id=?').run(u.searchParams.get('value') || '',me.id);
+      const b=await body(req);
+      db.prepare('UPDATE orders SET address=? WHERE user_id=?').run(String(b.value || ''),me.id
+      );
       return send(res,200,{ok:true});
     }
     if(p==='/api/reviews' && req.method==='GET') return send(res,200,db.prepare('SELECT * FROM reviews').all());
@@ -140,9 +144,17 @@ const server = http.createServer(async(req,res)=>{
       const csv='id,body\n'+rows.map(r=>`${r.id},"${String(r.body).replaceAll('"','""')}"`).join('\n');
       return send(res,200,csv,'text/csv; charset=utf-8');
     }
+  function escapeHtml(value) {
+    return String(value)
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
+  }
     if(p==='/api/log' && req.method==='POST') {db.prepare('INSERT INTO lab_logs(message) VALUES(?)').run(String(b.message || ''));return send(res,200,{ok:true});} // LAB: CRLF/log forging.
     if(p==='/api/logs') return send(res,200,db.prepare('SELECT * FROM lab_logs ORDER BY id').all());
-    if(p==='/search') return send(res,200,`<!doctype html><meta charset="utf-8"><h1>Результаты: ${u.searchParams.get('q') || ''}</h1>`,'text/html; charset=utf-8'); // LAB: REFLECTED-XSS.
+    if(p==='/search') return send(res,200,`<!doctype html><meta charset="utf-8"><h1>Результаты: ${escapeHtml(u.searchParams.get('q') || '')}</h1>`,'text/html; charset=utf-8'); // LAB: REFLECTED-XSS.
     if(p==='/api/download') {
       const file=path.resolve(DATA,'public',u.searchParams.get('file') || 'receipt.txt');
       // LAB: PATH-TRAVERSAL inside fixture directory; real host files stay out of scope.
@@ -188,7 +200,14 @@ const server = http.createServer(async(req,res)=>{
     }
     if(p==='/api/debug') return send(res,200,{db:path.join(DATA,'shop.sqlite'),paymentKey:'LAB_FAKE_PAYMENT_KEY',environment:'training'}); // LAB: SECRET-EXPOSURE.
     if(p==='/api/error') db.prepare('SELECT * FROM missing_table').all(); // LAB: VERBOSE-ERROR.
-    if(p==='/redirect') {res.writeHead(302,{Location:u.searchParams.get('next') || '/'});return res.end();} // LAB: open redirect.
+    if(p==='/redirect') {
+      const next=u.searchParams.get('next') || '/';
+      if(!next.startsWith('/') || next.startsWith('//')) {
+        return send(res,400,{error:'Invalid redirect'});
+      }
+      res.writeHead(302,{Location:next});
+      return res.end();
+    }
     if(p==='/lab/csrf') return send(res,200,'<!doctype html><meta charset="utf-8"><h1>Учебная CSRF-страница</h1><p>Открытие страницы меняет адрес заказов вошедшего пользователя.</p><img src="/api/address?value=CSRF-DEMO" alt="Учебный запрос">','text/html; charset=utf-8');
     if(p==='/' || p==='/app.js' || p==='/style.css') {
       const name=p==='/'?'index.html':p.slice(1);
