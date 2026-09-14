@@ -354,3 +354,34 @@ node scripts/lab-cli.mjs get /api/v1/admin/users
 
 - **Где:** `/api/v1/admin/users`.
 - **Лечение:** единая авторизация перед version routing; инвентаризация и удаление старых API; тесты anonymous/customer/admin для каждой версии. После исправления STATUS 401/403 либо 404.
+
+## CLI-06. Два аккаунта с одним email разного регистра
+
+```text
+node scripts/lab-cli.mjs post /api/register '{"email":"Alice@lab.test","password":"other123","name":"Другая Алиса"}'
+```
+
+Если получен STATUS 201, одновременно существуют:
+
+```text
+alice@lab.test
+Alice@lab.test
+```
+
+Это может ломать восстановление пароля и определение владельца.
+
+- **Идея.** SQLite UNIQUE считает `alice@lab.test` и `Alice@lab.test` разными строками, хотя почтовая система или человек могут воспринимать их как один адрес.
+
+```text
+node scripts/lab-cli.mjs post /api/register '{"email":"Alice@lab.test","password":"other123","name":"Другая Алиса"}'
+```
+
+STATUS 201 подтверждает второй аккаунт. Теперь отдельно работают:
+
+```text
+node scripts/lab-cli.mjs login alice@lab.test alice123
+node scripts/lab-cli.mjs login Alice@lab.test other123
+```
+
+- **Влияние.** Путаница владельца, приглашений и восстановления пароля зависит от правил реального почтового провайдера.
+- **Лечение:** определить каноническое правило идентификатора, хранить отдельное нормализованное значение с UNIQUE и применять его во входе/reset. Не изменять локальную часть email без принятой политики.
