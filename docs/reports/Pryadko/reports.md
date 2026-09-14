@@ -328,3 +328,29 @@ node scripts/lab-cli.mjs get /api/me
 
 - **Проблема.** Разные прокси, валидаторы и приложение могут по-разному выбирать первое или последнее значение.
 - **Лечение:** отклонять duplicate keys на границе, использовать строгую схему и никогда не принимать role при регистрации.
+
+## CLI-05. Старая версия API
+
+```text
+node scripts/lab-cli.mjs reset-cookie
+node scripts/lab-cli.mjs get /api/v1/admin/users
+```
+
+Если без входа получен список пользователей и паролей, старая версия API не защищена.
+
+1. Удалите CLI-cookie:
+
+```text
+node scripts/lab-cli.mjs reset-cookie
+```
+
+2. Запросите старую версию:
+
+```text
+node scripts/lab-cli.mjs get /api/v1/admin/users
+```
+
+3. STATUS 200 и список email/password без входа подтверждают проблему.
+
+- **Где:** `/api/v1/admin/users`.
+- **Лечение:** единая авторизация перед version routing; инвентаризация и удаление старых API; тесты anonymous/customer/admin для каждой версии. После исправления STATUS 401/403 либо 404.
